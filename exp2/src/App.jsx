@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { addOrUpdateDraft, deleteDraft as deleteDraftAction, setSelectedDraftId, resetSelectedDraftId } from './features/draftsSlice'
 import './App.css'
 
 const platformRules = {
@@ -36,18 +38,6 @@ const platformRules = {
   },
 }
 
-const readDraftsFromStorage = () => {
-  if (typeof window === 'undefined') {
-    return []
-  }
-
-  try {
-    const storedDrafts = window.localStorage.getItem('post-drafts')
-    return storedDrafts ? JSON.parse(storedDrafts) : []
-  } catch {
-    return []
-  }
-}
 
 const saveDraftToMockApi = (draft) =>
   new Promise((resolve) => {
@@ -61,16 +51,14 @@ function App() {
     'Our team is preparing a fresh experience for creators and we cannot wait to share it with you this week.',
   )
   const [scheduleLater, setScheduleLater] = useState(false)
-  const [drafts, setDrafts] = useState(readDraftsFromStorage)
-  const [selectedDraftId, setSelectedDraftId] = useState(null)
+  const dispatch = useDispatch()
+  const drafts = useSelector((state) => state.drafts.items)
+  const selectedDraftId = useSelector((state) => state.drafts.selectedDraftId)
+  const [searchQuery, setSearchQuery] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [statusMessage, setStatusMessage] = useState('Drafts are stored locally and can be edited anytime.')
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem('post-drafts', JSON.stringify(drafts))
-    }
-  }, [drafts])
+  // persistence handled by store subscription in `src/store.js`
 
   const togglePlatform = (platform) => {
     setSelectedPlatforms((current) =>
@@ -85,7 +73,7 @@ function App() {
     setTitle('')
     setContent('')
     setScheduleLater(false)
-    setSelectedDraftId(null)
+    dispatch(resetSelectedDraftId())
   }
 
   const handleSaveDraft = async () => {
@@ -104,18 +92,8 @@ function App() {
 
     try {
       const savedDraft = await saveDraftToMockApi(draft)
-
-      setDrafts((current) => {
-        const existingIndex = current.findIndex((item) => item.id === savedDraft.id)
-
-        if (existingIndex >= 0) {
-          return current.map((item) => (item.id === savedDraft.id ? savedDraft : item))
-        }
-
-        return [savedDraft, ...current]
-      })
-
-      setSelectedDraftId(savedDraft.id)
+      dispatch(addOrUpdateDraft(savedDraft))
+      dispatch(setSelectedDraftId(savedDraft.id))
       setStatusMessage(`Draft "${savedDraft.title}" saved successfully.`)
     } catch {
       setStatusMessage('Unable to save draft right now.')
@@ -129,14 +107,13 @@ function App() {
     setContent(draft.content || '')
     setSelectedPlatforms(draft.selectedPlatforms || ['instagram'])
     setScheduleLater(Boolean(draft.scheduleLater))
-    setSelectedDraftId(draft.id)
+    dispatch(setSelectedDraftId(draft.id))
     setStatusMessage(`Loaded draft "${draft.title}".`)
   }
 
   const handleDeleteDraft = (draftId) => {
     const draftToDelete = drafts.find((draft) => draft.id === draftId)
-
-    setDrafts((current) => current.filter((draft) => draft.id !== draftId))
+    dispatch(deleteDraftAction(draftId))
 
     if (selectedDraftId === draftId) {
       resetComposer()
@@ -267,6 +244,19 @@ function App() {
           <div className="draft-panel">
             <div className="draft-panel-head">
               <h2>Draft library</h2>
+              <div className="draft-search">
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search drafts"
+                  aria-label="Search drafts"
+                />
+                {searchQuery && (
+                  <button type="button" className="clear-search" onClick={() => setSearchQuery('')}>
+                    Clear
+                  </button>
+                )}
+              </div>
               <button type="button" className="ghost-btn" onClick={handleNewDraft}>
                 New draft
               </button>
@@ -284,7 +274,17 @@ function App() {
               {drafts.length === 0 ? (
                 <p className="empty-state">No drafts yet. Save your first post to build your queue.</p>
               ) : (
-                drafts.map((draft) => (
+                (() => {
+                  const q = searchQuery.trim().toLowerCase()
+                  const filtered = q
+                    ? drafts.filter((d) => (d.title || '').toLowerCase().includes(q) || (d.content || '').toLowerCase().includes(q))
+                    : drafts
+
+                  if (filtered.length === 0) {
+                    return <p className="empty-state">No drafts match your search.</p>
+                  }
+
+                  return filtered.map((draft) => (
                   <article key={draft.id} className={`draft-card ${selectedDraftId === draft.id ? 'selected' : ''}`}>
                     <button type="button" className="draft-summary" onClick={() => loadDraftIntoComposer(draft)}>
                       <div className="draft-card-head">
@@ -301,7 +301,8 @@ function App() {
                       Delete
                     </button>
                   </article>
-                ))
+                  ))
+                })()
               )}
             </div>
           </div>

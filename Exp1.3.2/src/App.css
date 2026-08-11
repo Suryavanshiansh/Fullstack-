@@ -1,7 +1,8 @@
 :root {
+  color-scheme: dark;
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: #f3f4f6;
-  background: linear-gradient(135deg, #0f172a, #1d4ed8);
+  color: #e7f4ff;
+  background: linear-gradient(135deg, #04111d 0%, #0f2440 100%);
   line-height: 1.5;
   font-weight: 400;
 }
@@ -13,7 +14,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f172a, #1d4ed8);
+  background: linear-gradient(135deg, #04111d 0%, #0f2440 100%);
 }
 
 button,
@@ -23,11 +24,12 @@ input {
 
 button {
   cursor: pointer;
-  border: none;
-  padding: 0.7rem 1rem;
-  border-radius: 0.6rem;
-  background: #2563eb;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.75rem 1rem;
+  font-weight: 700;
   color: white;
+  background: linear-gradient(135deg, #268cff, #6a5cff);
 }
 
 button:disabled {
@@ -36,13 +38,50 @@ button:disabled {
 }
 
 .ghost-button {
-  background: transparent;
-  border: 1px solid rgba(255,255,255,0.3);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.16);
 }
 
 .app-shell {
   min-height: 100vh;
   padding: 2rem;
+  display: grid;
+  place-items: center;
+}
+
+.card {
+  width: min(1100px, 100%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 24px;
+  padding: 24px;
+  background: rgba(5, 16, 31, 0.84);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+
+.hero {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 3vw, 2.7rem);
+}
+
+.hero p {
+  margin: 0;
+  color: #9cb8d6;
+  line-height: 1.6;
+}
+
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.8rem;
+  color: #93c5fd;
 }
 
 .topbar {
@@ -50,48 +89,104 @@ button:disabled {
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  padding: 1.2rem 1.4rem;
-  background: rgba(15, 23, 42, 0.86);
-  border-radius: 1rem;
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
+  padding: 1rem 1.1rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  margin-bottom: 1.2rem;
 }
 
 .nav-links {
   display: flex;
-  gap: 0.8rem;
-  align-items: center;
+  gap: 0.7rem;
   flex-wrap: wrap;
 }
 
-.nav-links a {
-  color: #e2e8f0;
-  text-decoration: none;
-  padding: 0.4rem 0.7rem;
+.nav-button {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.nav-button.active {
+  background: linear-gradient(135deg, #268cff, #6a5cff);
+}
+
+.guest-badge {
+  padding: 0.55rem 0.9rem;
   border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #dcecff;
 }
 
-.nav-links a.active {
-  background: #1d4ed8;
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
 }
 
-.content {
-  margin-top: 1.25rem;
+.panel,
+.view-card {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.04);
 }
 
-.card {
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 1rem;
-  padding: 1.4rem;
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
+form {
+  display: grid;
+  gap: 12px;
 }
 
-.eyebrow {
-  margin: 0 0 0.25rem;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  font-size: 0.75rem;
-  color: #93c5fd;
+label {
+  display: grid;
+  gap: 8px;
+  font-weight: 600;
+}
+
+input {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+button.secondary {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.error {
+  color: #ff9c9c;
+  background: rgba(255, 76, 76, 0.15);
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+
+.success {
+  color: #b3ffca;
+  background: rgba(35, 164, 99, 0.16);
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+
+.info-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #dcecff;
+  line-height: 1.7;
+}
+
+.token-box {
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+  background: rgba(8, 23, 40, 0.85);
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.content-panel {
+  margin-top: 20px;
 }
 
 .info-grid {
@@ -101,37 +196,15 @@ button:disabled {
   margin-top: 1rem;
 }
 
-.login-card {
-  max-width: 520px;
-}
-
-.login-form,
-.credential-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
-}
-
-label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-input {
-  padding: 0.75rem;
-  border-radius: 0.6rem;
-  border: 1px solid rgba(255,255,255,0.2);
-  background: rgba(255,255,255,0.08);
-  color: white;
-}
-
-.button-row,
-.action-panel {
+.button-row {
   display: flex;
   gap: 0.7rem;
   flex-wrap: wrap;
   margin-top: 1rem;
+}
+
+.summary {
+  color: #cbd5e1;
 }
 
 .status-pill {
@@ -148,15 +221,11 @@ input {
   color: #e2e8f0;
 }
 
-.summary {
-  color: #cbd5e1;
-}
-
-.error-text {
-  color: #fecaca;
-}
-
 @media (max-width: 760px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
   .topbar {
     flex-direction: column;
     align-items: flex-start;

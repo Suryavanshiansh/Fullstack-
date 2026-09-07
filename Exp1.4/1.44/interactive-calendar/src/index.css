@@ -1,0 +1,30 @@
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Trebuchet MS', 'Avenir Next', sans-serif;
+  background: #f4f0e8;
+  color: #1d2a2a;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+button {
+  font-family: inherit;
+}
+
+button, input, select {
+  font: inherit;
+}
+
+button:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 3px solid rgba(231, 111, 81, 0.35);
+  outline-offset: 2px;
+}

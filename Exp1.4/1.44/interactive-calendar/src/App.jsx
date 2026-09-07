@@ -23,9 +23,7 @@ const PostCardMemo = memo(PostCard);
 
 export default function App() {
   // Optimization toggles — each controls a real rendering behavior.
-  const [memoOn, setMemoOn] = useState(true);
-  const [useMemoOn, setUseMemoOn] = useState(true);
-  const [useCallbackOn, setUseCallbackOn] = useState(true);
+    const [optimized, setOptimized] = useState(true);
   const [editingPost, setEditingPost] = useState(null);
 
   const posts = useSelector((state) => state.posts.posts);
@@ -58,26 +56,22 @@ export default function App() {
     dispatch(reschedulePost({ id, date: newDate }));
   const handlePostClickPlain = (post) => setEditingPost(post);
 
-  const handleEdit = useCallbackOn ? handleEditStable : handleEditPlain;
-  const handleDelete = useCallbackOn ? handleDeleteStable : handleDeletePlain;
-  const handlePostDrop = useCallbackOn ? handlePostDropStable : handlePostDropPlain;
-  const handlePostClick = useCallbackOn ? handlePostClickStable : handlePostClickPlain;
+  const handleEdit = optimized ? handleEditStable : handleEditPlain;
+  const handleDelete = optimized ? handleDeleteStable : handleDeletePlain;
+  const handlePostDrop = optimized ? handlePostDropStable : handlePostDropPlain;
+  const handlePostClick = optimized ? handlePostClickStable : handlePostClickPlain;
 
   // Mirror counts into state whenever any toggle flips so the panel updates.
-  const prevToggles = useRef({ memoOn, useMemoOn, useCallbackOn });
-  if (
-    prevToggles.current.memoOn !== memoOn ||
-    prevToggles.current.useMemoOn !== useMemoOn ||
-    prevToggles.current.useCallbackOn !== useCallbackOn
-  ) {
-    prevToggles.current = { memoOn, useMemoOn, useCallbackOn };
+  const prevOptimized = useRef(optimized);
+  if (prevOptimized.current !== optimized) {
+    prevOptimized.current = optimized;
     setCounts({ ...countsRef.current });
   }
 
   // Selected post for the bottom detail panel — first one if none highlighted
   const selectedPost = editingPost || posts[0];
 
-  const PostCardToUse = memoOn ? PostCardMemo : PostCard;
+  const PostCardToUse = optimized ? PostCardMemo : PostCard;
 
   const topbarStyle = {
     display: 'flex',
@@ -132,33 +126,20 @@ export default function App() {
         </div>
         <button
           type="button"
-          data-testid="memo-toggle"
-          onClick={() => flip(setMemoOn)}
+          data-testid="optimization-toggle"
+          onClick={() => flip(setOptimized)}
           className="toggle-btn"
-          style={toggleBtn(memoOn)}
-          title="Wrap PostCard in React.memo"
+          style={toggleBtn(optimized)}
+          title="Toggle React.memo, useMemo, and useCallback together"
         >
-          React.memo: {memoOn ? 'ON' : 'OFF'}
+          Optimization: {optimized ? 'ON' : 'OFF'}
         </button>
         <button
           type="button"
-          data-testid="usememo-toggle"
-          onClick={() => flip(setUseMemoOn)}
-          className="toggle-btn"
-          style={toggleBtn(useMemoOn)}
-          title="Cache Calendar events array"
+          className="reset-btn"
+          onClick={() => setCounts({ App: 0, Calendar: 0, PostCard: 0 })}
         >
-          useMemo: {useMemoOn ? 'ON' : 'OFF'}
-        </button>
-        <button
-          type="button"
-          data-testid="usecallback-toggle"
-          onClick={() => flip(setUseCallbackOn)}
-          className="toggle-btn"
-          style={toggleBtn(useCallbackOn)}
-          title="Stabilize handler references"
-        >
-          useCallback: {useCallbackOn ? 'ON' : 'OFF'}
+          Reset counts
         </button>
       </div>
 
@@ -173,8 +154,8 @@ export default function App() {
             onPostDrop={handlePostDrop}
             onPostClick={handlePostClick}
             onCountsChange={handleCounts}
-            useMemoOn={useMemoOn}
-            useCallbackOn={useCallbackOn}
+            useMemoOn={optimized}
+            useCallbackOn={optimized}
           />
 
           <div className="selected-panel" style={bottomStyle} data-testid="selected-post-panel">
@@ -200,9 +181,9 @@ export default function App() {
 
         <div className="side-column">
           <PerformancePanel
-            memoOn={memoOn}
-            useMemoOn={useMemoOn}
-            useCallbackOn={useCallbackOn}
+            memoOn={optimized}
+            useMemoOn={optimized}
+            useCallbackOn={optimized}
             counts={counts}
           />
 

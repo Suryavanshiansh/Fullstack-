@@ -77,39 +77,38 @@ describe('Interactive Calendar', () => {
     expect(store.getState().posts.posts.some((p) => p.id === 'p3')).toBe(false);
   });
 
-  it('6. Each optimization toggle switches its own state', () => {
+  it('6. Master optimization toggle switches all optimizations', () => {
     renderApp();
-    expect(screen.getByTestId('memo-toggle')).toHaveTextContent('ON');
-    expect(screen.getByTestId('usememo-toggle')).toHaveTextContent('ON');
-    expect(screen.getByTestId('usecallback-toggle')).toHaveTextContent('ON');
+    expect(screen.getByTestId('optimization-toggle')).toHaveTextContent('ON');
     expect(screen.getByTestId('memo-status')).toHaveTextContent('Active');
     expect(screen.getByTestId('usememo-status')).toHaveTextContent('Active');
     expect(screen.getByTestId('usecallback-status')).toHaveTextContent('Active');
 
-    fireEvent.click(screen.getByTestId('memo-toggle'));
-    expect(screen.getByTestId('memo-toggle')).toHaveTextContent('OFF');
+    fireEvent.click(screen.getByTestId('optimization-toggle'));
+    expect(screen.getByTestId('optimization-toggle')).toHaveTextContent('OFF');
     expect(screen.getByTestId('memo-status')).toHaveTextContent('Inactive');
-    expect(screen.getByTestId('usememo-toggle')).toHaveTextContent('ON');
-    expect(screen.getByTestId('usecallback-toggle')).toHaveTextContent('ON');
-
-    fireEvent.click(screen.getByTestId('usememo-toggle'));
-    expect(screen.getByTestId('usememo-toggle')).toHaveTextContent('OFF');
     expect(screen.getByTestId('usememo-status')).toHaveTextContent('Inactive');
-
-    fireEvent.click(screen.getByTestId('usecallback-toggle'));
-    expect(screen.getByTestId('usecallback-toggle')).toHaveTextContent('OFF');
     expect(screen.getByTestId('usecallback-status')).toHaveTextContent('Inactive');
   });
 
   it('7. RenderCounter increments on re-render', () => {
     renderApp();
     const initial = screen.getByTestId('render-count-app').textContent;
-    fireEvent.click(screen.getByTestId('memo-toggle'));
+    fireEvent.click(screen.getByTestId('optimization-toggle'));
     const after = screen.getByTestId('render-count-app').textContent;
     expect(Number(after)).toBeGreaterThan(Number(initial));
   });
 
-  it('8. reschedulePost action updates date in Redux state', () => {
+  it('8. Render counts can be reset', () => {
+    renderApp();
+    fireEvent.click(screen.getByTestId('optimization-toggle'));
+    fireEvent.click(screen.getByText('Reset counts'));
+    expect(screen.getByTestId('render-count-app')).toHaveTextContent('0');
+    expect(screen.getByTestId('render-count-calendar')).toHaveTextContent('0');
+    expect(screen.getByTestId('render-count-postcard')).toHaveTextContent('0');
+  });
+
+  it('9. reschedulePost action updates date in Redux state', () => {
     const store = makeStore();
     expect(store.getState().posts.posts[0].date).toBeTruthy();
     store.dispatch(reschedulePost({ id: 'p1', date: '2026-08-25' }));
@@ -117,7 +116,7 @@ describe('Interactive Calendar', () => {
     expect(p1.date).toBe('2026-08-25');
   });
 
-  it('9. HTML5 drag-and-drop reschedules a post via onDrop', () => {
+  it('10. HTML5 drag-and-drop reschedules a post via onDrop', () => {
     const { store } = renderApp();
     const originalDate = store.getState().posts.posts.find((p) => p.id === 'p1').date;
 

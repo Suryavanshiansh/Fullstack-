@@ -8,7 +8,7 @@
 //   - each post chip has draggable + onDragStart
 //   - each day cell has onDragOver (preventDefault) + onDrop
 //   - on drop, App dispatches reschedulePost with the new date
-import { useState, useCallback, useRef, memo } from 'react';
+import { useState, useCallback, useRef, useEffect, memo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { deletePost, reschedulePost } from './store/postSlice';
 import PostForm from './components/PostForm';
@@ -23,22 +23,37 @@ const PostCardMemo = memo(PostCard);
 
 export default function App() {
   // Optimization toggles — each controls a real rendering behavior.
-    const [optimized, setOptimized] = useState(true);
+  const [optimized, setOptimized] = useState(true);
   const [editingPost, setEditingPost] = useState(null);
+  const [resetToken, setResetToken] = useState(0);
 
   const posts = useSelector((state) => state.posts.posts);
   const dispatch = useDispatch();
 
   // Live render counts — kept in refs so updating them does not trigger a
-  // re-render and risk feedback loops. We mirror the values into state only
-  // when one of the toggles flips, which is exactly when we want to display
-  // the new numbers anyway.
+  // re-render and risk feedback loops. We mirror the values into state after
+  // the render cycle so the panel reflects the latest values without loops.
   const countsRef = useRef({ App: 0, Calendar: 0, PostCard: 0 });
+  const resetGuardRef = useRef(false);
   const [counts, setCounts] = useState({ App: 0, Calendar: 0, PostCard: 0 });
-  countsRef.current.App += 1;
 
   const handleCounts = useCallback((name, value) => {
+    if (resetGuardRef.current) {
+      countsRef.current[name] = 0;
+      return;
+    }
     countsRef.current[name] = value;
+  }, []);
+
+  const syncCounts = useCallback(() => {
+    setCounts((prev) => {
+      const next = { ...countsRef.current };
+      const same =
+        prev.App === next.App &&
+        prev.Calendar === next.Calendar &&
+        prev.PostCard === next.PostCard;
+      return same ? prev : next;
+    });
   }, []);
 
   // Stable handlers when useCallback is ON; recreated every render when OFF.
@@ -61,12 +76,14 @@ export default function App() {
   const handlePostDrop = optimized ? handlePostDropStable : handlePostDropPlain;
   const handlePostClick = optimized ? handlePostClickStable : handlePostClickPlain;
 
-  // Mirror counts into state whenever any toggle flips so the panel updates.
-  const prevOptimized = useRef(optimized);
-  if (prevOptimized.current !== optimized) {
-    prevOptimized.current = optimized;
-    setCounts({ ...countsRef.current });
-  }
+  useEffect(() => {
+    if (resetGuardRef.current) {
+      resetGuardRef.current = false;
+      setCounts({ App: 0, Calendar: 0, PostCard: 0 });
+      return;
+    }
+    syncCounts();
+  }, [syncCounts, optimized, editingPost, posts, resetToken]);
 
   // Selected post for the bottom detail panel — first one if none highlighted
   const selectedPost = editingPost || posts[0];
@@ -113,8 +130,15 @@ export default function App() {
 
   // Wrap a setter so the panel's numbers visibly jump right after the flip.
   const flip = (setter) => {
-    setCounts({ ...countsRef.current });
+    syncCounts();
     setter((v) => !v);
+  };
+
+  const resetCounts = () => {
+    resetGuardRef.current = true;
+    countsRef.current = { App: 0, Calendar: 0, PostCard: 0 };
+    setCounts({ App: 0, Calendar: 0, PostCard: 0 });
+    setResetToken((token) => token + 1);
   };
 
   return (
@@ -122,7 +146,7 @@ export default function App() {
       <div className="topbar" style={topbarStyle}>
         <div style={titleRowStyle}>
           <strong>Interactive Post Scheduler</strong>
-          <RenderCounter name="App" onCount={handleCounts} color="#7c3aed" />
+          <RenderCounter key={`app-counter-${resetToken}`} name="App" onCount={handleCounts} resetToken={resetToken} value={counts.App} color="#7c3aed" />
         </div>
         <button
           type="button"
@@ -137,7 +161,7 @@ export default function App() {
         <button
           type="button"
           className="reset-btn"
-          onClick={() => setCounts({ App: 0, Calendar: 0, PostCard: 0 })}
+          onClick={resetCounts}
         >
           Reset counts
         </button>
@@ -154,8 +178,10 @@ export default function App() {
             onPostDrop={handlePostDrop}
             onPostClick={handlePostClick}
             onCountsChange={handleCounts}
+            countValue={counts.Calendar}
             useMemoOn={optimized}
             useCallbackOn={optimized}
+            resetToken={resetToken}
           />
 
           <div className="selected-panel" style={bottomStyle} data-testid="selected-post-panel">
@@ -170,6 +196,9 @@ export default function App() {
                 status={selectedPost.status}
                 priority={selectedPost.priority}
                 author={selectedPost.author}
+                onCount={handleCounts}
+                resetToken={resetToken}
+                countValue={counts.PostCard}
               />
             ) : (
               <div style={{ color: '#9ca3af', fontSize: '13px', marginTop: '6px' }}>

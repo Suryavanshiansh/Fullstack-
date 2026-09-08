@@ -8,11 +8,16 @@ const ROLE_LEVEL = {
   admin: 3,
 }
 
-const DEMO_USERS = [
+const INITIAL_DEMO_USERS = [
   { username: 'admin', password: 'admin123', role: 'admin', name: 'Ava Chen', summary: 'Full access to the platform.' },
   { username: 'editor', password: 'editor123', role: 'editor', name: 'Ben Ortiz', summary: 'Can publish and manage content.' },
   { username: 'viewer', password: 'viewer123', role: 'viewer', name: 'Cara Singh', summary: 'Has read-only access.' },
 ]
+
+function getStoredUsers() {
+  const storedUsers = window.localStorage.getItem('combined-auth-demo-users')
+  return storedUsers ? JSON.parse(storedUsers) : INITIAL_DEMO_USERS
+}
 
 function encodeBase64(value) {
   return window.btoa(unescape(encodeURIComponent(value)))
@@ -57,6 +62,14 @@ function App() {
   const [status, setStatus] = useState('Please sign in to continue.')
   const [isLoading, setIsLoading] = useState(false)
   const [activeView, setActiveView] = useState('overview')
+  const [demoUsers, setDemoUsers] = useState(() => getStoredUsers())
+  const [newEditor, setNewEditor] = useState({ username: '', password: '', name: '' })
+  const [newViewer, setNewViewer] = useState({ username: '', password: '', name: '' })
+  const [newPost, setNewPost] = useState({ title: '', content: '' })
+  const [posts, setPosts] = useState([
+    { id: 1, title: 'Welcome Post', content: 'Editors can create and update content.', author: 'Admin' },
+    { id: 2, title: 'Viewer Notice', content: 'Viewers can read posts but cannot edit them.', author: 'Editor' },
+  ])
 
   useEffect(() => {
     if (!token) {
@@ -87,6 +100,8 @@ function App() {
   const isAuthenticated = Boolean(profile)
 
   const hasAccess = (requiredRole) => ROLE_LEVEL[role] >= ROLE_LEVEL[requiredRole]
+  const canManagePosts = role === 'editor' || role === 'admin'
+  const canDeletePosts = role === 'admin'
 
   const handleLogin = async (event) => {
     event.preventDefault()
@@ -95,7 +110,7 @@ function App() {
 
     await new Promise((resolve) => window.setTimeout(resolve, 700))
 
-    const matchedUser = DEMO_USERS.find(
+    const matchedUser = demoUsers.find(
       (candidate) => candidate.username === username.trim() && candidate.password === password,
     )
 
@@ -121,10 +136,111 @@ function App() {
     setActiveView('overview')
   }
 
+  const handleAddEditor = (event) => {
+    event.preventDefault()
+
+    if (!newEditor.username || !newEditor.password || !newEditor.name) {
+      setError('Please fill in username, password, and name for the new editor.')
+      return
+    }
+
+    const updatedUsers = [
+      ...demoUsers,
+      {
+        username: newEditor.username.trim(),
+        password: newEditor.password,
+        role: 'editor',
+        name: newEditor.name.trim(),
+        summary: 'Added from the demo form and can manage content.',
+      },
+    ]
+
+    setDemoUsers(updatedUsers)
+    window.localStorage.setItem('combined-auth-demo-users', JSON.stringify(updatedUsers))
+    setNewEditor({ username: '', password: '', name: '' })
+    setStatus(`New editor ${newEditor.name.trim()} was added successfully.`)
+    setError('')
+  }
+
+  const handleAddViewer = (event) => {
+    event.preventDefault()
+
+    if (!newViewer.username || !newViewer.password || !newViewer.name) {
+      setError('Please fill in username, password, and name for the new viewer.')
+      return
+    }
+
+    const updatedUsers = [
+      ...demoUsers,
+      {
+        username: newViewer.username.trim(),
+        password: newViewer.password,
+        role: 'viewer',
+        name: newViewer.name.trim(),
+        summary: 'Added from the demo form and has read-only access.',
+      },
+    ]
+
+    setDemoUsers(updatedUsers)
+    window.localStorage.setItem('combined-auth-demo-users', JSON.stringify(updatedUsers))
+    setNewViewer({ username: '', password: '', name: '' })
+    setStatus(`New viewer ${newViewer.name.trim()} was added successfully.`)
+    setError('')
+  }
+
+  const handleRemoveUser = (usernameToRemove) => {
+    const updatedUsers = demoUsers.filter((user) => user.username !== usernameToRemove)
+    setDemoUsers(updatedUsers)
+    window.localStorage.setItem('combined-auth-demo-users', JSON.stringify(updatedUsers))
+    setStatus(`User ${usernameToRemove} was removed.`)
+  }
+
+  const handleCreatePost = (event) => {
+    event.preventDefault()
+
+    if (!newPost.title.trim() || !newPost.content.trim()) {
+      setError('Please add both a title and content for the new post.')
+      return
+    }
+
+    const nextPost = {
+      id: Date.now(),
+      title: newPost.title.trim(),
+      content: newPost.content.trim(),
+      author: profile?.name || 'Editor',
+    }
+
+    setPosts((previousPosts) => [nextPost, ...previousPosts])
+    setNewPost({ title: '', content: '' })
+    setError('')
+    setStatus(`Post "${nextPost.title}" was created successfully.`)
+  }
+
+  const handleUpdatePost = (postId) => {
+    setPosts((previousPosts) =>
+      previousPosts.map((post) =>
+        post.id === postId
+          ? {
+              ...post,
+              title: `${post.title} (Updated)`,
+              content: `This post was updated by the ${role} role.`,
+              author: profile?.name || 'Editor',
+            }
+          : post,
+      ),
+    )
+    setStatus('The selected post was updated.')
+  }
+
+  const handleDeletePost = (postId) => {
+    setPosts((previousPosts) => previousPosts.filter((post) => post.id !== postId))
+    setStatus('The selected post was deleted.')
+  }
+
   const navItems = [
     { key: 'overview', label: 'Overview', requiredRole: 'viewer' },
     { key: 'dashboard', label: 'Dashboard', requiredRole: 'viewer' },
-    { key: 'content', label: 'Content', requiredRole: 'editor' },
+    { key: 'content', label: 'Content', requiredRole: 'viewer' },
     { key: 'settings', label: 'Settings', requiredRole: 'admin' },
   ]
 
@@ -152,7 +268,7 @@ function App() {
         <section className="view-card">
           <h2>Dashboard</h2>
           <p>Welcome, {profile.name}. Your role is <strong>{profile.role}</strong>.</p>
-          <p className="summary">{DEMO_USERS.find((user) => user.username === profile.sub)?.summary}</p>
+          <p className="summary">{demoUsers.find((user) => user.username === profile.sub)?.summary}</p>
           <div className="button-row">
             <button type="button">View reports</button>
             {hasAccess('editor') ? <button type="button">Publish update</button> : null}
@@ -172,11 +288,11 @@ function App() {
         )
       }
 
-      if (!hasAccess('editor')) {
+      if (!hasAccess('viewer')) {
         return (
           <section className="view-card">
             <h2>Access denied</h2>
-            <p>You need editor-level access to open the content tools.</p>
+            <p>You need at least viewer access to open the content area.</p>
           </section>
         )
       }
@@ -184,10 +300,48 @@ function App() {
       return (
         <section className="view-card">
           <h2>Content management</h2>
-          <p>This section is protected by both JWT validation and RBAC rules.</p>
-          <div className="button-row">
-            <button type="button">Save draft</button>
-            <button type="button">Approve content</button>
+          <p>This area demonstrates the RBAC model: admin has CRUD, editor has CRU, and viewer is read-only.</p>
+
+          {canManagePosts ? (
+            <form onSubmit={handleCreatePost} className="add-editor-form">
+              <h3>Create a new post</h3>
+              <label>
+                Title
+                <input value={newPost.title} onChange={(event) => setNewPost({ ...newPost, title: event.target.value })} placeholder="New draft topic" />
+              </label>
+              <label>
+                Content
+                <textarea value={newPost.content} onChange={(event) => setNewPost({ ...newPost, content: event.target.value })} placeholder="Write your content here..." rows="4" />
+              </label>
+              <button type="submit" className="secondary">Create post</button>
+            </form>
+          ) : (
+            <p className="summary">You can only read posts in this view.</p>
+          )}
+
+          <div className="divider" />
+          <h3>Posts</h3>
+          <div className="user-list">
+            {posts.map((post) => (
+              <div key={post.id} className="user-row">
+                <div>
+                  <strong>{post.title}</strong>
+                  <div className="summary">{post.content} • by {post.author}</div>
+                </div>
+                <div className="button-row">
+                  {canManagePosts ? (
+                    <button type="button" className="secondary" onClick={() => handleUpdatePost(post.id)}>
+                      Update
+                    </button>
+                  ) : null}
+                  {canDeletePosts ? (
+                    <button type="button" className="secondary" onClick={() => handleDeletePost(post.id)}>
+                      Delete
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            ))}
           </div>
         </section>
       )
@@ -216,10 +370,64 @@ function App() {
         <section className="view-card">
           <h2>System settings</h2>
           <p>This is the highest privilege area in the combined experience.</p>
+
           <div className="button-row">
             <button type="button">Create role policy</button>
             <button type="button">Audit activity</button>
           </div>
+
+          <div className="divider" />
+          <h3>Manage editors and viewers</h3>
+          <div className="user-list">
+            {demoUsers
+              .filter((user) => user.role === 'editor' || user.role === 'viewer')
+              .map((user) => (
+                <div key={user.username} className="user-row">
+                  <div>
+                    <strong>{user.name}</strong>
+                    <div className="summary">{user.username} • {user.role}</div>
+                  </div>
+                  <button type="button" className="secondary" onClick={() => handleRemoveUser(user.username)}>
+                    Remove
+                  </button>
+                </div>
+              ))}
+          </div>
+
+          <div className="divider" />
+          <form onSubmit={handleAddEditor} className="add-editor-form">
+            <h3>Add a new editor</h3>
+            <label>
+              Name
+              <input value={newEditor.name} onChange={(event) => setNewEditor({ ...newEditor, name: event.target.value })} placeholder="Riya Shah" />
+            </label>
+            <label>
+              Username
+              <input value={newEditor.username} onChange={(event) => setNewEditor({ ...newEditor, username: event.target.value })} placeholder="riya" />
+            </label>
+            <label>
+              Password
+              <input type="password" value={newEditor.password} onChange={(event) => setNewEditor({ ...newEditor, password: event.target.value })} placeholder="editor456" />
+            </label>
+            <button type="submit" className="secondary">Add editor</button>
+          </form>
+
+          <form onSubmit={handleAddViewer} className="add-editor-form">
+            <h3>Add a new viewer</h3>
+            <label>
+              Name
+              <input value={newViewer.name} onChange={(event) => setNewViewer({ ...newViewer, name: event.target.value })} placeholder="Neha Rao" />
+            </label>
+            <label>
+              Username
+              <input value={newViewer.username} onChange={(event) => setNewViewer({ ...newViewer, username: event.target.value })} placeholder="neha" />
+            </label>
+            <label>
+              Password
+              <input type="password" value={newViewer.password} onChange={(event) => setNewViewer({ ...newViewer, password: event.target.value })} placeholder="viewer456" />
+            </label>
+            <button type="submit" className="secondary">Add viewer</button>
+          </form>
         </section>
       )
     }
@@ -281,21 +489,58 @@ function App() {
         <div className="grid">
           <div className="panel">
             {!isAuthenticated ? (
-              <form onSubmit={handleLogin}>
-                <label>
-                  Username
-                  <input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="admin" />
-                </label>
-                <label>
-                  Password
-                  <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="admin123" />
-                </label>
-                <button type="submit" disabled={isLoading}>{isLoading ? 'Authenticating...' : 'Log in'}</button>
-                <button type="button" className="secondary" onClick={() => { setUsername('admin'); setPassword('admin123') }}>
-                  Fill demo credentials
-                </button>
-                {error ? <div className="error">{error}</div> : null}
-              </form>
+              <>
+                <form onSubmit={handleLogin}>
+                  <label>
+                    Username
+                    <input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="admin" />
+                  </label>
+                  <label>
+                    Password
+                    <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="admin123" />
+                  </label>
+                  <button type="submit" disabled={isLoading}>{isLoading ? 'Authenticating...' : 'Log in'}</button>
+                  <button type="button" className="secondary" onClick={() => { setUsername('admin'); setPassword('admin123') }}>
+                    Fill demo credentials
+                  </button>
+                  {error ? <div className="error">{error}</div> : null}
+                </form>
+
+                <div className="divider" />
+                <form onSubmit={handleAddEditor} className="add-editor-form">
+                  <h3>Add a new editor</h3>
+                  <label>
+                    Name
+                    <input value={newEditor.name} onChange={(event) => setNewEditor({ ...newEditor, name: event.target.value })} placeholder="Riya Shah" />
+                  </label>
+                  <label>
+                    Username
+                    <input value={newEditor.username} onChange={(event) => setNewEditor({ ...newEditor, username: event.target.value })} placeholder="riya" />
+                  </label>
+                  <label>
+                    Password
+                    <input type="password" value={newEditor.password} onChange={(event) => setNewEditor({ ...newEditor, password: event.target.value })} placeholder="editor456" />
+                  </label>
+                  <button type="submit" className="secondary">Add editor</button>
+                </form>
+
+                <form onSubmit={handleAddViewer} className="add-editor-form">
+                  <h3>Add a new viewer</h3>
+                  <label>
+                    Name
+                    <input value={newViewer.name} onChange={(event) => setNewViewer({ ...newViewer, name: event.target.value })} placeholder="Neha Rao" />
+                  </label>
+                  <label>
+                    Username
+                    <input value={newViewer.username} onChange={(event) => setNewViewer({ ...newViewer, username: event.target.value })} placeholder="neha" />
+                  </label>
+                  <label>
+                    Password
+                    <input type="password" value={newViewer.password} onChange={(event) => setNewViewer({ ...newViewer, password: event.target.value })} placeholder="viewer456" />
+                  </label>
+                  <button type="submit" className="secondary">Add viewer</button>
+                </form>
+              </>
             ) : (
               <div>
                 <h2>Welcome back</h2>

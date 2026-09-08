@@ -91,7 +91,14 @@ describe('Interactive Calendar', () => {
     expect(screen.getByTestId('usecallback-status')).toHaveTextContent('Inactive');
   });
 
-  it('7. RenderCounter increments on re-render', () => {
+  it('7. Render counts are synced to the live counter values', () => {
+    renderApp();
+    expect(Number(screen.getByTestId('render-count-app').textContent)).toBeGreaterThan(0);
+    expect(Number(screen.getByTestId('render-count-calendar').textContent)).toBeGreaterThan(0);
+    expect(Number(screen.getByTestId('render-count-postcard').textContent)).toBeGreaterThanOrEqual(0);
+  });
+
+  it('8. RenderCounter increments on re-render', () => {
     renderApp();
     const initial = screen.getByTestId('render-count-app').textContent;
     fireEvent.click(screen.getByTestId('optimization-toggle'));
@@ -99,7 +106,7 @@ describe('Interactive Calendar', () => {
     expect(Number(after)).toBeGreaterThan(Number(initial));
   });
 
-  it('8. Render counts can be reset', () => {
+  it('9. Render counts can be reset', () => {
     renderApp();
     fireEvent.click(screen.getByTestId('optimization-toggle'));
     fireEvent.click(screen.getByText('Reset counts'));

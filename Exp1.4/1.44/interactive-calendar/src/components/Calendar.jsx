@@ -44,8 +44,10 @@ export default function Calendar({
   onPostDrop,
   onPostClick,
   onCountsChange,
+  countValue,
   useMemoOn,
   useCallbackOn,
+  resetToken,
 }) {
   // useMemo — caches expensive calculation (postsByDay map)
   const memoedPostsByDay = useMemo(() => {
@@ -190,7 +192,7 @@ export default function Calendar({
           <button type="button" data-testid="cal-next" style={navBtn} onClick={() => setViewDate((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}>
             ›
           </button>
-          <RenderCounter name="Calendar" onCount={onCountsChange} color="#2563eb" />
+          <RenderCounter key={`calendar-counter-${viewDate.toISOString()}`} name="Calendar" onCount={onCountsChange} resetToken={resetToken} value={countValue ?? 0} color="#2563eb" />
         </div>
       </div>
 

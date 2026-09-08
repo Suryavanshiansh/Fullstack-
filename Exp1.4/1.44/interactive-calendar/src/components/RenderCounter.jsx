@@ -1,13 +1,20 @@
 // RenderCounter — useRef persists across renders without causing re-render
 import { useRef } from 'react';
 
-export default function RenderCounter({ name, onCount, color = '#2563eb' }) {
-  // useRef persists across renders without causing re-render
+export default function RenderCounter({ name, onCount, resetToken, value, color = '#2563eb' }) {
   const count = useRef(0);
-  count.current += 1;
+  const previousResetToken = useRef(resetToken);
 
-  // Report during render — parent must use a ref-backed store to avoid loops.
-  if (onCount) onCount(name, count.current);
+  if (resetToken !== previousResetToken.current) {
+    count.current = 0;
+    previousResetToken.current = resetToken;
+    if (onCount) onCount(name, 0);
+  } else {
+    count.current += 1;
+    if (onCount) onCount(name, count.current);
+  }
+
+  const displayValue = value ?? count.current;
 
   const containerStyle = {
     display: 'inline-flex',
@@ -31,7 +38,7 @@ export default function RenderCounter({ name, onCount, color = '#2563eb' }) {
   return (
     <span className="render-counter" style={containerStyle} data-testid={`render-counter-${name}`}>
       <span style={dotStyle} />
-      <span>{name}: {count.current}</span>
+      <span>{name}: {displayValue}</span>
     </span>
   );
 }

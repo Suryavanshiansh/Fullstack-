@@ -2,3 +2,7 @@ node_modules/
 dist/
 **/node_modules/
 **/dist/
+**/build/
+**/target/
+.vscode/
+**/.DS_Store
